@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "twitter2",
+    "twitter2_tests"
+]
