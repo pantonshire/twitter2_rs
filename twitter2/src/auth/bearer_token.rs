@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::client::{Request, RequestData};
+use crate::{client::Request, request_data::RequestData};
 
 use super::{AppAuth, Auth};
 

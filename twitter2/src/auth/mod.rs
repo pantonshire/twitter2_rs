@@ -6,7 +6,7 @@ pub use oauth10a::OAuth10a;
 
 use std::borrow::Cow;
 
-use crate::client::{Request, RequestData};
+use crate::{client::Request, request_data::RequestData};
 
 pub trait Auth: sealed::Sealed {
     fn auth_header<D: RequestData>(&self, request: &Request<D>) -> Cow<str>;

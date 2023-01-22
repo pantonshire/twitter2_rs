@@ -1,11 +1,22 @@
 use std::{borrow::Cow, str, sync::Arc, time::Duration, fmt};
 
 use enumscribe::ScribeStaticStr;
-use libshire::{encoding::url::{percent_decode_utf8, percent_encode, FormDecode}, sink::{FmtSink, sink_fmt, SinkString, StrSink}, convert::result_elim};
+use libshire::{
+    encoding::url::{percent_decode_utf8, percent_encode, FormDecode},
+    sink::{FmtSink, sink_fmt, SinkString, StrSink},
+    convert::result_elim
+};
 use reqwest::{header::{HeaderValue, AUTHORIZATION}, StatusCode};
-use serde::{Serialize, Deserialize};
+use serde::Deserialize;
 
-use crate::{auth::{oauth10a::OAuth10aRequest, Auth, OAuth10a, AppAuth, UserAuth}, response::{ApiV2Response, ResponseError, Includes, UserResponse}, limit::LimitInfo, user::UserId, model::{PayloadUserModel, IncludedTweetModel, FromResponseError}};
+use crate::{
+    auth::{oauth10a::OAuth10aRequest, Auth, OAuth10a, AppAuth, UserAuth},
+    response::{ApiV2Response, ResponseError, Includes, UserResponse},
+    limit::LimitInfo,
+    user::UserId,
+    model::{PayloadUserModel, IncludedTweetModel, FromResponseError},
+    request_data::{FormData, RequestData, QueryData}
+};
 
 #[derive(Clone)]
 pub struct AsyncClient<A> {
@@ -526,138 +537,6 @@ impl<'a, D> Request<'a, D> {
 
     pub(crate) fn data(&self) -> &D {
         &self.data
-    }
-}
-
-pub trait RequestData: request_data_sealed::RequestDataSealed {}
-
-impl RequestData for () {}
-
-pub struct QueryData<'a> {
-    params: &'a [(&'a str, &'a str)],
-}
-
-impl<'a> QueryData<'a> {
-    pub fn new(params: &'a [(&'a str, &'a str)]) -> Self {
-        Self { params }
-    }
-}
-
-impl<'a> RequestData for QueryData<'a> {}
-
-pub struct FormData<'a> {
-    params: &'a [(&'a str, &'a str)],
-}
-
-impl<'a> FormData<'a> {
-    pub fn new(params: &'a [(&'a str, &'a str)]) -> Self {
-        Self { params }
-    }
-}
-
-impl<'a> RequestData for FormData<'a> {}
-
-pub struct JsonData<'a, B: ?Sized> {
-    json_body: &'a B,
-}
-
-impl<'a, B: ?Sized> JsonData<'a, B> {
-    pub fn new(json_body: &'a B) -> Self {
-        Self { json_body }
-    }
-}
-
-impl<'a, B: Serialize + ?Sized> RequestData for JsonData<'a, B> {}
-
-pub(crate) mod request_data_sealed {
-    use libshire::encoding::url::percent_encode;
-    use reqwest::{
-        header::{HeaderValue, CONTENT_TYPE},
-        Request, RequestBuilder,
-    };
-    use serde::Serialize;
-
-    use super::{FormData, JsonData, QueryData};
-
-    pub trait RequestDataSealed {
-        fn has_params(&self) -> bool;
-        fn for_each_param<'s, F: FnMut(&'s str, &'s str)>(&'s self, f: F);
-        fn build_http_request(self, builder: RequestBuilder) -> reqwest::Result<Request>;
-    }
-
-    impl RequestDataSealed for () {
-        fn has_params(&self) -> bool {
-            false
-        }
-
-        fn for_each_param<'s, F: FnMut(&'s str, &'s str)>(&'s self, _: F) {}
-
-        fn build_http_request(self, builder: RequestBuilder) -> reqwest::Result<Request> {
-            builder.build()
-        }
-    }
-
-    impl<'a> RequestDataSealed for QueryData<'a> {
-        fn has_params(&self) -> bool {
-            !self.params.is_empty()
-        }
-
-        fn for_each_param<'s, F: FnMut(&'s str, &'s str)>(&'s self, mut f: F) {
-            for (key, val) in self.params {
-                f(key, val)
-            }
-        }
-
-        fn build_http_request(self, builder: RequestBuilder) -> reqwest::Result<Request> {
-            builder.query(self.params).build()
-        }
-    }
-
-    impl<'a> RequestDataSealed for FormData<'a> {
-        fn has_params(&self) -> bool {
-            !self.params.is_empty()
-        }
-
-        fn for_each_param<'s, F: FnMut(&'s str, &'s str)>(&'s self, mut f: F) {
-            for (key, val) in self.params {
-                f(key, val)
-            }
-        }
-
-        fn build_http_request(self, builder: RequestBuilder) -> reqwest::Result<Request> {
-            let mut buf = String::new();
-            for (key, val) in self.params {
-                if !buf.is_empty() {
-                    buf.push('&');
-                }
-                buf.push_str(&percent_encode(key));
-                buf.push('=');
-                buf.push_str(&percent_encode(val));
-            }
-
-            builder
-                .header(
-                    CONTENT_TYPE,
-                    HeaderValue::from_static("application/x-www-form-urlencoded"),
-                )
-                .body(buf)
-                .build()
-        }
-    }
-
-    impl<'a, B> RequestDataSealed for JsonData<'a, B>
-    where
-        B: Serialize + ?Sized,
-    {
-        fn has_params(&self) -> bool {
-            false
-        }
-
-        fn for_each_param<'s, F: FnMut(&'s str, &'s str)>(&'s self, _: F) {}
-
-        fn build_http_request(self, builder: RequestBuilder) -> reqwest::Result<Request> {
-            builder.json(self.json_body).build()
-        }
     }
 }
 

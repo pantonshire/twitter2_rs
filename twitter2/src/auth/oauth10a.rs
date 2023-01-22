@@ -7,7 +7,7 @@ use libshire::{encoding::url::percent_encode, strings::CappedString};
 use rand::{distributions::Alphanumeric, CryptoRng, Rng};
 use sha1::Sha1;
 
-use crate::client::{Request, RequestData};
+use crate::{client::Request, request_data::RequestData};
 
 use super::{AppAuth, Auth, UserAuth};
 
@@ -234,7 +234,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::client::{FormData, Method, Request};
+    use crate::{client::{Method, Request}, request_data::FormData};
 
     use super::OAuth10a;
 

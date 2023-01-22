@@ -5,6 +5,7 @@ mod id;
 pub mod limit;
 pub mod media;
 pub mod model;
+pub mod request_data;
 pub mod request_options;
 pub mod response;
 pub mod tweet;
