@@ -9,3 +9,6 @@ pub mod request_options;
 pub mod response;
 pub mod tweet;
 pub mod user;
+
+pub use auth::{BearerToken, OAuth10a};
+pub use client::AsyncClient;
