@@ -14,7 +14,7 @@ use crate::{
     response::{ApiV2Response, ResponseError, Includes, UserResponse},
     limit::LimitInfo,
     user::UserId,
-    model::{PayloadUserModel, IncludedTweetModel, FromResponseError},
+    model::{PayloadUserModel, IncludedTweetModel, FromResponseError, PayloadTweetModel},
     request_data::{FormData, RequestData, QueryData}
 };
 
@@ -120,7 +120,7 @@ impl<A: AppAuth> AsyncClient<A> {
         const ENDPOINT: &str = "https://api.twitter.com/2/users";
 
         let expansions = scribe_comma_separated(User::REQUIRED_EXPANSIONS);
-        let tweet_fields = scribe_comma_separated(User::Tweet::REQUIRED_FIELDS);
+        let tweet_fields = scribe_comma_separated(User::IncludedTweet::REQUIRED_FIELDS);
         let user_fields = scribe_comma_separated(User::REQUIRED_FIELDS);
 
         let ids = fmt_comma_separated(ids.into_iter().map(|id| id.0));
@@ -137,24 +137,15 @@ impl<A: AppAuth> AsyncClient<A> {
                 ])
             )).await?;
 
-        let tweets = if User::Tweet::SHOULD_DESERIALIZE {
-            includes
-                .tweets
-                .into_vec()
-                .into_iter()
-                .map(|tweet| User::Tweet::from_response(tweet))
-                .collect::<Result<Box<[_]>, _>>()
-                .map_err(|err| ErrorRepr {
-                    kind: ErrorKind::DeserializeModel(err),
-                    limit_info: Some(limit_info.clone()),
-                }.boxed())?
-        } else {
-            Box::default()
-        };
+        let included_tweets = User::includes_from_response(includes)
+            .map_err(|err| ErrorRepr {
+                kind: ErrorKind::DeserializeModel(err),
+                limit_info: Some(limit_info.clone()),
+            }.boxed())?;
 
         let users = users
             .into_iter()
-            .map(|user| User::from_response(user, &tweets))
+            .map(|user| User::from_response(user, &included_tweets))
             .collect::<Result<Box<[_]>, _>>()
             .map_err(|err| ErrorRepr {
                 kind: ErrorKind::DeserializeModel(err),

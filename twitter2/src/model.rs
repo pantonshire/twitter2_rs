@@ -2,8 +2,8 @@ use std::{error, fmt, rc::Rc, sync::Arc};
 
 use crate::{
     media::MediaKey,
-    request_options::{TweetField, UserField, UserPayloadExpansion},
-    response::{TweetResponse, UserResponse},
+    request_options::{TweetField, UserField, UserPayloadExpansion, TweetPayloadExpansion},
+    response::{TweetResponse, UserResponse, Includes},
     tweet::TweetId,
     user::UserId,
 };
@@ -47,16 +47,66 @@ pub enum Include {
     Media(MediaKey),
 }
 
-// FIXME: PayloadTweetModel
+pub trait PayloadTweetModel: Sized {
+    type IncludedTweet: IncludedTweetModel + Clone;
+    type IncludedUser: IncludedUserModel + Clone;
+
+    const REQUIRED_FIELDS: &'static [TweetField];
+    const REQUIRED_EXPANSIONS: &'static [TweetPayloadExpansion];
+
+    fn required_tweet_fields() -> [&'static [TweetField]; 2] {
+        [
+            Self::REQUIRED_FIELDS,
+            Self::IncludedTweet::REQUIRED_FIELDS
+        ]
+    }
+
+    fn includes_from_response(includes: Includes)
+        -> Result<(Box<[Self::IncludedTweet]>, Box<[Self::IncludedUser]>), FromResponseError>
+    {
+        let tweets= Self::IncludedTweet::SHOULD_DESERIALIZE.then(|| {
+            includes
+                .tweets
+                .into_vec()
+                .into_iter()
+                .map(|tweet| Self::IncludedTweet::from_response(tweet))
+                .collect::<Result<Box<[_]>, _>>()
+        }).unwrap_or(Ok(Box::default()))?;
+
+        let users = Self::IncludedUser::SHOULD_DESERIALIZE.then(|| {
+            includes
+                .users
+                .into_vec()
+                .into_iter()
+                .map(|tweet| Self::IncludedUser::from_response(tweet))
+                .collect::<Result<Box<[_]>, _>>()
+        }).unwrap_or(Ok(Box::default()))?;
+
+        Ok((tweets, users))
+    }
+}
 
 pub trait PayloadUserModel: Sized {
-    type Tweet: IncludedTweetModel + Clone;
+    type IncludedTweet: IncludedTweetModel + Clone;
 
     const REQUIRED_FIELDS: &'static [UserField];
     const REQUIRED_EXPANSIONS: &'static [UserPayloadExpansion];
 
-    fn from_response(user: UserResponse, tweets: &[Self::Tweet])
+    fn from_response(user: UserResponse, included_tweets: &[Self::IncludedTweet])
         -> Result<Self, FromResponseError>;
+
+    fn includes_from_response(includes: Includes)
+        -> Result<Box<[Self::IncludedTweet]>, FromResponseError>
+    {
+        Self::IncludedTweet::SHOULD_DESERIALIZE.then(|| {
+            includes
+                .tweets
+                .into_vec()
+                .into_iter()
+                .map(|tweet| Self::IncludedTweet::from_response(tweet))
+                .collect::<Result<Box<[_]>, _>>()
+        }).unwrap_or(Ok(Box::default()))
+    }
 }
 
 pub trait IncludedTweetModel: Sized {
@@ -104,4 +154,12 @@ impl IncludedTweetModel for () {
     fn from_response(_tweet: TweetResponse) -> Result<Self, FromResponseError> {
         Ok(())
     }
+}
+
+pub trait IncludedUserModel: Sized {
+    const REQUIRED_FIELDS: &'static [UserField];
+    const SHOULD_DESERIALIZE: bool = true;
+
+    fn id_matches(&self, id: TweetId) -> bool;
+    fn from_response(user: UserResponse) -> Result<Self, FromResponseError>;
 }
