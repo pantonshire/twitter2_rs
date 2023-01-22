@@ -6,6 +6,8 @@ const X_RATE_LIMIT_LIMIT: HeaderName = HeaderName::from_static("x-rate-limit-lim
 const X_RATE_LIMIT_REMAINING: HeaderName = HeaderName::from_static("x-rate-limit-remaining");
 const X_RATE_LIMIT_RESET: HeaderName = HeaderName::from_static("x-rate-limit-reset");
 
+/// Stores information provided by the Twitter API about the rate limit of the endpoint that was
+/// used.
 #[derive(Clone, Debug)]
 pub struct LimitInfo {
     limit: Option<NonZeroU64>,
@@ -41,18 +43,35 @@ impl LimitInfo {
         Self::new(limit, remaining, reset_secs)
     }
     
+    /// The rate limit ceiling for the endpoint that was used. This is the maximum number of times
+    /// the endpoint may be used within its reset window.
+    /// 
+    /// Returns `None` if this information was not provided by the Twitter API.
     pub fn limit(&self) -> Option<u64> {
         opt_u64_decode(self.limit)
     }
 
+    /// Returns the number of requests remaining that may be made to the endpoint before
+    /// [`reset_seconds`](Self::reset_seconds) seconds have passed.
+    /// 
+    /// Returns `None` if this information was not provided by the Twitter API.
     pub fn remaining(&self) -> Option<u64> {
         opt_u64_decode(self.remaining)
     }
 
+    /// Returns the number of seconds before the rate limit resets.
+    /// 
+    /// Returns `None` if this information was not provided by the Twitter API.
+    /// 
+    /// If you want a [`Duration`](std::time::Duration), use
+    /// [`reset_duration`](Self::reset_duration).
     pub fn reset_seconds(&self) -> Option<u64> {
         opt_u64_decode(self.reset_secs)
     }
 
+    /// Returns the time duration before the rate limit resets.
+    /// 
+    /// Returns `None` if this information was not provided by the Twitter API.
     pub fn reset_duration(&self) -> Option<Duration> {
         self.reset_seconds().map(Duration::from_secs)
     }
