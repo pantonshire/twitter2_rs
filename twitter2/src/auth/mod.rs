@@ -12,8 +12,12 @@ pub trait Auth: sealed::Sealed {
     fn auth_header<D: RequestData>(&self, request: &Request<D>) -> Cow<str>;
 }
 
+/// A trait for credentials that can be used to authenticate requests made on behalf of a
+/// [Twitter App](https://developer.twitter.com/en/docs/apps/overview).
 pub trait AppAuth: Auth {}
 
+/// A trait for credentials that can be used to authenticate requests made on behalf of a specific
+/// user.
 pub trait UserAuth: AppAuth {}
 
 mod sealed {

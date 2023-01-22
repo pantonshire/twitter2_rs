@@ -13,6 +13,8 @@ use super::{AppAuth, Auth, UserAuth};
 
 const NONCE_LEN: usize = 64;
 
+/// A set of [OAuth 1.0a](https://oauth.net/core/1.0a/) credentials that can be used to
+/// authenticate requests made on behalf of a specific user.
 #[derive(Clone)]
 pub struct OAuth10a {
     api_key_encoded: Box<str>,
@@ -21,12 +23,15 @@ pub struct OAuth10a {
 }
 
 impl OAuth10a {
+    /// Returns a new `OAuth10a` which can be used to authenticate requests made on behalf of a
+    /// specific user.
     pub fn new(
         api_key: &str,
         api_key_secret: &str,
         access_token: &str,
         access_token_secret: &str,
-    ) -> Self {
+    ) -> Self
+    {
         let signing_key = {
             // Percent encode both components of the signing key.
             let api_key_secret_encoded = percent_encode(api_key_secret);
@@ -48,6 +53,8 @@ impl OAuth10a {
         }
     }
 
+    /// Returns a new `OAuth10a` with the same API key pair but a different access token pair.
+    #[must_use]
     pub fn with_access_token(&self, access_token: &str, access_token_secret: &str) -> Self {
         let signing_key = {
             // Find the position of the ampersand which separates the API key secret from the
@@ -83,7 +90,8 @@ impl OAuth10a {
         request: &Request<D>,
         nonce_encoded: &str,
         timestamp: i64,
-    ) -> Box<str> {
+    ) -> Box<str>
+    {
         // FIXME: don't do this dynamic allocation & sorting if the request has no parameters
         let mut params = BTreeSet::<(Cow<str>, Cow<str>)>::new();
 
@@ -128,7 +136,8 @@ impl OAuth10a {
         request: &Request<D>,
         nonce_encoded: &str,
         timestamp: i64,
-    ) -> Box<str> {
+    ) -> Box<str>
+    {
         let method = request.method_str();
         let base_url_encoded = percent_encode(request.base_url());
         let parameter_string = self.parameter_string(request, nonce_encoded, timestamp);
@@ -149,7 +158,8 @@ impl OAuth10a {
         request: &Request<D>,
         nonce_encoded: &str,
         timestamp: i64,
-    ) -> Box<str> {
+    ) -> Box<str>
+    {
         const BASE64_ENGINE: GeneralPurpose = base64::engine::general_purpose::STANDARD;
 
         let base = self.signature_base(request, nonce_encoded, timestamp);
