@@ -1,4 +1,4 @@
-use std::{num::NonZeroU64, str};
+use std::{num::NonZeroU64, str, time::Duration};
 
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 
@@ -51,6 +51,10 @@ impl LimitInfo {
 
     pub fn reset_seconds(&self) -> Option<u64> {
         opt_u64_decode(self.reset_secs)
+    }
+
+    pub fn reset_duration(&self) -> Option<Duration> {
+        self.reset_seconds().map(Duration::from_secs)
     }
 }
 
