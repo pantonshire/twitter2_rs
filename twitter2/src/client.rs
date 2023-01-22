@@ -48,8 +48,7 @@ impl<A: Auth> AsyncClient<A> {
             auth: Arc::new(auth),
         }
     }
-    
-    // N.B. callers need to check that the status code is a success
+
     async fn raw_request<'req, ReqData>(
         &self,
         request: Request<'req, ReqData>,
@@ -126,10 +125,6 @@ impl<A: AppAuth> AsyncClient<A> {
                     ("user.fields", &user_fields),
                 ])
             )).await?;
-
-        // FIXME: remove
-        println!("{:?}", users);
-        println!("{:?}", includes);
 
         let tweets = if User::Tweet::SHOULD_DESERIALIZE {
             includes
