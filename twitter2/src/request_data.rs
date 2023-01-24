@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use libshire::encoding::url::percent_encode;
 use reqwest::{RequestBuilder, header::{CONTENT_TYPE, HeaderValue}};
 use serde::Serialize;
@@ -46,11 +48,11 @@ impl<'a> RequestData for QueryData<'a> {
 }
 
 pub struct FormData<'a> {
-    params: &'a [(&'a str, &'a str)],
+    params: &'a [(Cow<'a, str>, Cow<'a, str>)],
 }
 
 impl<'a> FormData<'a> {
-    pub fn new(params: &'a [(&'a str, &'a str)]) -> Self {
+    pub fn new(params: &'a [(Cow<'a, str>, Cow<'a, str>)]) -> Self {
         Self { params }
     }
 }
@@ -72,9 +74,9 @@ impl<'a> RequestData for FormData<'a> {
             if !buf.is_empty() {
                 buf.push('&');
             }
-            buf.push_str(&percent_encode(key));
+            buf.push_str(&percent_encode(key.as_ref()));
             buf.push('=');
-            buf.push_str(&percent_encode(val));
+            buf.push_str(&percent_encode(val.as_ref()));
         }
 
         builder

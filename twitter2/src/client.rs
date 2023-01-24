@@ -11,11 +11,10 @@ use serde::Deserialize;
 
 use crate::{
     auth::{oauth10a::OAuth10aRequest, Auth, OAuth10a, AppAuth, UserAuth},
-    response::{ApiV2Response, ResponseError, Includes, UserResponse},
+    response::{ApiV2Response, ResponseError, Includes},
     limit::LimitInfo,
     user::UserId,
-    model::{PayloadUserModel, IncludedTweetModel, FromResponseError, PayloadTweetModel},
-    request_data::{FormData, RequestData, QueryData}
+    request_data::{FormData, RequestData, QueryData}, tweet::Tweet
 };
 
 #[derive(Clone)]
@@ -109,56 +108,56 @@ impl<A: Auth> AsyncClient<A> {
 }
 
 impl<A: AppAuth> AsyncClient<A> {
-    pub async fn lookup_users<User, I>(
-        &self,
-        ids: I
-    ) -> Result<(Box<[User]>, LimitInfo), Error>
-    where
-        User: PayloadUserModel,
-        I: IntoIterator<Item = UserId>,
-    {
-        const ENDPOINT: &str = "https://api.twitter.com/2/users";
+    // pub async fn lookup_users<User, I>(
+    //     &self,
+    //     ids: I
+    // ) -> Result<(Box<[User]>, LimitInfo), Error>
+    // where
+    //     User: PayloadUserModel,
+    //     I: IntoIterator<Item = UserId>,
+    // {
+    //     const ENDPOINT: &str = "https://api.twitter.com/2/users";
 
-        let expansions = scribe_comma_separated(User::REQUIRED_EXPANSIONS);
-        let tweet_fields = scribe_comma_separated(User::IncludedTweet::REQUIRED_FIELDS);
-        let user_fields = scribe_comma_separated(User::REQUIRED_FIELDS);
+    //     let expansions = scribe_comma_separated(User::REQUIRED_EXPANSIONS);
+    //     let tweet_fields = scribe_comma_separated(User::IncludedTweet::REQUIRED_FIELDS);
+    //     let user_fields = scribe_comma_separated(User::REQUIRED_FIELDS);
 
-        let ids = fmt_comma_separated(ids.into_iter().map(|id| id.0));
+    //     let ids = fmt_comma_separated(ids.into_iter().map(|id| id.0));
 
-        let (users, includes, limit_info)
-            = self.apiv2_request::<_, Vec<UserResponse>>(Request::new_with_data(
-                Method::Get,
-                ENDPOINT,
-                QueryData::new(&[
-                    ("ids", &ids),
-                    ("expansions", &expansions),
-                    ("tweet.fields", &tweet_fields),
-                    ("user.fields", &user_fields),
-                ])
-            )).await?;
+    //     let (users, includes, limit_info)
+    //         = self.apiv2_request::<_, Vec<User>>(Request::new_with_data(
+    //             Method::Get,
+    //             ENDPOINT,
+    //             QueryData::new(&[
+    //                 ("ids", &ids),
+    //                 ("expansions", &expansions),
+    //                 ("tweet.fields", &tweet_fields),
+    //                 ("user.fields", &user_fields),
+    //             ])
+    //         )).await?;
 
-        let included_tweets = User::includes_from_response(includes)
-            .map_err(|err| ErrorRepr {
-                kind: ErrorKind::DeserializeModel(err),
-                limit_info: Some(limit_info.clone()),
-            }.boxed())?;
+    //     let included_tweets = User::includes_from_response(includes)
+    //         .map_err(|err| ErrorRepr {
+    //             kind: ErrorKind::DeserializeModel(err),
+    //             limit_info: Some(limit_info.clone()),
+    //         }.boxed())?;
 
-        let users = users
-            .into_iter()
-            .map(|user| User::from_response(user, &included_tweets))
-            .collect::<Result<Box<[_]>, _>>()
-            .map_err(|err| ErrorRepr {
-                kind: ErrorKind::DeserializeModel(err),
-                limit_info: Some(limit_info.clone()),
-            }.boxed())?;
+    //     let users = users
+    //         .into_iter()
+    //         .map(|user| User::from_response(user, &included_tweets))
+    //         .collect::<Result<Box<[_]>, _>>()
+    //         .map_err(|err| ErrorRepr {
+    //             kind: ErrorKind::DeserializeModel(err),
+    //             limit_info: Some(limit_info.clone()),
+    //         }.boxed())?;
 
-        Ok((users, limit_info))
-    }
+    //     Ok((users, limit_info))
+    // }
 
-    async fn apiv2_request<'req, ReqData, RespData>(
+    pub(crate) async fn apiv2_request<'req, ReqData, RespData>(
         &self,
         request: Request<'req, ReqData>
-    ) -> Result<(RespData, Includes, LimitInfo), Error>
+    ) -> Result<(ApiV2Response<RespData>, LimitInfo), Error>
     where
         ReqData: RequestData,
         RespData: for<'de> Deserialize<'de>,
@@ -190,14 +189,16 @@ impl<A: AppAuth> AsyncClient<A> {
             }.boxed());
         }
         
-        let data = apiv2_response
-            .data
-            .ok_or_else(|| ErrorRepr {
-                kind: ErrorKind::NoData,
-                limit_info: Some(limit_info.clone()),
-            }.boxed())?;
+        // let data = apiv2_response
+        //     .data
+        //     .ok_or_else(|| ErrorRepr {
+        //         kind: ErrorKind::NoData,
+        //         limit_info: Some(limit_info.clone()),
+        //     }.boxed())?;
         
-        Ok((data, apiv2_response.includes, limit_info))
+        // Ok((data, apiv2_response.includes, limit_info))
+
+        Ok((apiv2_response, limit_info))
     }
 }
 
@@ -213,7 +214,9 @@ impl AsyncClient<OAuth10a> {
     {
         const ENDPOINT: &str = "https://api.twitter.com/oauth/request_token";
 
-        let data = [("oauth_callback", callback_url)];
+        let data = [
+            (Cow::Borrowed("oauth_callback"), Cow::Borrowed(callback_url))
+        ];
 
         // FIXME: return limit info
         let (response, limit_info) = self
@@ -293,7 +296,9 @@ impl AsyncClient<OAuth10aRequest> {
     {
         const ENDPOINT: &str = "https://api.twitter.com/oauth/access_token";
 
-        let data = [("oauth_verifier", verifier)];
+        let data = [
+            (Cow::Borrowed("oauth_verifier"), Cow::Borrowed(verifier))
+        ];
 
         // FIXME: return limit info
         let (response, limit_info) = self
@@ -466,13 +471,13 @@ impl Error {
 }
 
 #[derive(Debug)]
-struct ErrorRepr {
-    kind: ErrorKind,
-    limit_info: Option<LimitInfo>,
+pub(crate) struct ErrorRepr {
+    pub kind: ErrorKind,
+    pub limit_info: Option<LimitInfo>,
 }
 
 impl ErrorRepr {
-    fn boxed(self) -> Error {
+    pub(crate) fn boxed(self) -> Error {
         Error { repr: Box::new(self) }
     }
 }
@@ -488,7 +493,6 @@ pub enum ErrorKind {
         errors: Box<[ResponseError]>,
     },
     NoData,
-    DeserializeModel(FromResponseError),
     // FIXME: replace this temporary variant
     Custom(Cow<'static, str>),
 }
@@ -529,58 +533,4 @@ impl<'a, D> Request<'a, D> {
     pub(crate) fn data(&self) -> &D {
         &self.data
     }
-}
-
-fn scribe_comma_separated<'a, T, I>(iter: I) -> String
-where
-    T: ScribeStaticStr + 'a,
-    I: IntoIterator<Item = &'a T>,
-{
-    let iter = iter.into_iter().map(|t| t.scribe());
-    let mut sink = SinkString::empty();
-    result_elim(sink_comma_separated(&mut sink, iter));
-    sink.0
-}
-
-fn fmt_comma_separated<T, I>(iter: I) -> String
-where
-    T: fmt::Display,
-    I: IntoIterator<Item = T>,
-{
-    let mut sink = SinkString::empty();
-    result_elim(sink_fmt_comma_separated(&mut sink, iter.into_iter()));
-    sink.0
-}
-
-fn sink_comma_separated<'a, I, S>(sink: &mut S, iter: I) -> Result<(), S::Error>
-where
-    I: IntoIterator<Item = &'a str>,
-    S: StrSink,
-{
-    let mut iter = iter.into_iter();
-    if let Some(first) = iter.next() {
-        sink.sink_str(first)?;
-        for item in iter {
-            sink.sink_char(',')?;
-            sink.sink_str(item)?;
-        }
-    }
-    Ok(())
-}
-
-fn sink_fmt_comma_separated<T, I, S>(sink: &mut S, iter: I) -> Result<(), S::Error>
-where
-    T: fmt::Display,
-    I: IntoIterator<Item = T>,
-    S: FmtSink,
-{
-    let mut iter = iter.into_iter();
-    if let Some(first) = iter.next() {
-        sink_fmt!(sink, "{}", first)?;
-        for item in iter {
-            sink.sink_char(',')?;
-            sink_fmt!(sink, "{}", item)?;
-        }
-    }
-    Ok(())
 }

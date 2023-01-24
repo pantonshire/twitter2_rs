@@ -234,6 +234,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use crate::{client::{Method, Request}, request_data::FormData};
 
     use super::OAuth10a;
@@ -250,10 +252,13 @@ mod tests {
 
         let base_url = "https://api.twitter.com/1.1/statuses/update.json";
         let data = FormData::new(&[
-            ("include_entities", "true"),
             (
-                "status",
-                "Hello Ladies + Gentlemen, a signed OAuth request!",
+                Cow::Borrowed("include_entities"),
+                Cow::Borrowed("true")
+            ),
+            (
+                Cow::Borrowed("status"),
+                Cow::Borrowed("Hello Ladies + Gentlemen, a signed OAuth request!"),
             ),
         ]);
 

@@ -89,6 +89,25 @@ impl fmt::Display for MediaKeyError {
 
 impl error::Error for MediaKeyError {}
 
+#[derive(Deserialize, Debug)]
+pub struct Media {
+    pub key: MediaKey,
+    #[serde(rename = "type")]
+    pub media_type: MediaType,
+    pub url: Option<Box<str>>,
+    pub duration_ms: Option<u32>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    //non_public_metrics:
+    //organic_metrics:
+    pub preview_image_url: Option<Box<str>>,
+    //promoted_metrics:
+    pub public_metrics: Option<MediaPublicMetrics>,
+    pub alt_text: Option<Box<str>>,
+    #[serde(default)]
+    pub variants: Box<[MediaVariant]>,
+}
+
 #[derive(EnumDeserialize, Debug)]
 pub enum MediaType {
     #[enumscribe(str = "photo")]

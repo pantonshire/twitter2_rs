@@ -1,10 +1,12 @@
-use std::fmt;
+use std::{fmt, str, num::ParseIntError};
 
+use chrono::{DateTime, Utc};
+use libshire::strings::InliningString23;
 use serde::Deserialize;
 
 use crate::{
     entity::{Tag, Url, UserMention},
-    id::IdU64,
+    id::IdU64, tweet::TweetId,
 };
 
 #[derive(Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -27,6 +29,32 @@ impl fmt::Display for UserId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         <u64 as fmt::Display>::fmt(&self.0, f)
     }
+}
+
+impl str::FromStr for UserId {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse().map(Self)
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct User {
+    pub id: UserId,
+    pub name: InliningString23,
+    pub username: InliningString23,
+    pub created_at: Option<DateTime<Utc>>,
+    pub description: Option<Box<str>>,
+    pub entities: Option<UserEntities>,
+    pub location: Option<Box<str>>,
+    pub pinned_tweet_id: Option<TweetId>,
+    pub profile_image_url: Option<Box<str>>,
+    pub protected: Option<bool>,
+    pub public_metrics: Option<UserPublicMetrics>,
+    pub url: Option<Box<str>>,
+    pub verified: Option<bool>,
+    // withheld:
 }
 
 #[derive(Deserialize, Debug)]

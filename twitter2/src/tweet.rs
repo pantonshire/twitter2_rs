@@ -1,5 +1,6 @@
-use std::fmt;
+use std::{fmt, str, num::ParseIntError};
 
+use chrono::{DateTime, Utc};
 use enumscribe::EnumDeserialize;
 use libshire::strings::InliningString23;
 use serde::Deserialize;
@@ -7,7 +8,7 @@ use serde::Deserialize;
 use crate::{
     entity::{Annotation, Tag, TweetMention, Url},
     id::IdU64,
-    media::MediaKey,
+    media::MediaKey, user::UserId,
 };
 
 #[derive(Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -30,6 +31,42 @@ impl fmt::Display for TweetId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         <u64 as fmt::Display>::fmt(&self.0, f)
     }
+}
+
+impl str::FromStr for TweetId {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse().map(Self)
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Tweet {
+    pub id: TweetId,
+    pub text: Box<str>,
+    #[serde(default)]
+    pub attachments: TweetAttachments,
+    pub author_id: Option<UserId>,
+    // context_annotations:
+    pub conversation_id: Option<TweetId>,
+    pub created_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub entities: TweetEntities,
+    // geo:
+    pub in_reply_to_user_id: Option<UserId>,
+    // FIXME: parse language
+    pub lang: Option<InliningString23>,
+    // non_public_metrics:
+    // organic_metrics:
+    pub possibly_sensitive: Option<bool>,
+    // promoted_metrics:
+    pub public_metrics: Option<TweetPublicMetrics>,
+    #[serde(default)]
+    pub referenced_tweets: Box<[ReferencedTweet]>,
+    pub reply_settings: Option<ReplySettings>,
+    pub source: Option<InliningString23>,
+    // withheld:
 }
 
 #[derive(Deserialize, Debug)]
