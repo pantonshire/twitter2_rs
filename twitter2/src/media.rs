@@ -91,7 +91,7 @@ impl error::Error for MediaKeyError {}
 
 #[derive(Deserialize, Debug)]
 pub struct Media {
-    pub key: MediaKey,
+    pub media_key: MediaKey,
     #[serde(rename = "type")]
     pub media_type: MediaType,
     pub url: Option<Box<str>>,
