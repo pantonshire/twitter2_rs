@@ -1,20 +1,17 @@
-use std::{borrow::Cow, str, sync::Arc, time::Duration, fmt};
+use std::{borrow::Cow, str, sync::Arc, time::Duration};
 
 use enumscribe::ScribeStaticStr;
 use libshire::{
     encoding::url::{percent_decode_utf8, percent_encode, FormDecode},
-    sink::{FmtSink, sink_fmt, SinkString, StrSink},
-    convert::result_elim
 };
 use reqwest::{header::{HeaderValue, AUTHORIZATION}, StatusCode};
 use serde::Deserialize;
 
 use crate::{
-    auth::{oauth10a::OAuth10aRequest, Auth, OAuth10a, AppAuth, UserAuth},
-    response::{ApiV2Response, ResponseError, Includes},
+    auth::{oauth10a::OAuth10aRequest, Auth, OAuth10a, AppAuth},
+    response::{ApiV2Response, ResponseError},
     limit::LimitInfo,
-    user::UserId,
-    request_data::{FormData, RequestData, QueryData}, tweet::Tweet
+    request_data::{FormData, RequestData}
 };
 
 #[derive(Clone)]
@@ -108,52 +105,6 @@ impl<A: Auth> AsyncClient<A> {
 }
 
 impl<A: AppAuth> AsyncClient<A> {
-    // pub async fn lookup_users<User, I>(
-    //     &self,
-    //     ids: I
-    // ) -> Result<(Box<[User]>, LimitInfo), Error>
-    // where
-    //     User: PayloadUserModel,
-    //     I: IntoIterator<Item = UserId>,
-    // {
-    //     const ENDPOINT: &str = "https://api.twitter.com/2/users";
-
-    //     let expansions = scribe_comma_separated(User::REQUIRED_EXPANSIONS);
-    //     let tweet_fields = scribe_comma_separated(User::IncludedTweet::REQUIRED_FIELDS);
-    //     let user_fields = scribe_comma_separated(User::REQUIRED_FIELDS);
-
-    //     let ids = fmt_comma_separated(ids.into_iter().map(|id| id.0));
-
-    //     let (users, includes, limit_info)
-    //         = self.apiv2_request::<_, Vec<User>>(Request::new_with_data(
-    //             Method::Get,
-    //             ENDPOINT,
-    //             QueryData::new(&[
-    //                 ("ids", &ids),
-    //                 ("expansions", &expansions),
-    //                 ("tweet.fields", &tweet_fields),
-    //                 ("user.fields", &user_fields),
-    //             ])
-    //         )).await?;
-
-    //     let included_tweets = User::includes_from_response(includes)
-    //         .map_err(|err| ErrorRepr {
-    //             kind: ErrorKind::DeserializeModel(err),
-    //             limit_info: Some(limit_info.clone()),
-    //         }.boxed())?;
-
-    //     let users = users
-    //         .into_iter()
-    //         .map(|user| User::from_response(user, &included_tweets))
-    //         .collect::<Result<Box<[_]>, _>>()
-    //         .map_err(|err| ErrorRepr {
-    //             kind: ErrorKind::DeserializeModel(err),
-    //             limit_info: Some(limit_info.clone()),
-    //         }.boxed())?;
-
-    //     Ok((users, limit_info))
-    // }
-
     pub(crate) async fn apiv2_request<'req, ReqData, RespData>(
         &self,
         request: Request<'req, ReqData>
@@ -188,22 +139,9 @@ impl<A: AppAuth> AsyncClient<A> {
                 limit_info: Some(limit_info),
             }.boxed());
         }
-        
-        // let data = apiv2_response
-        //     .data
-        //     .ok_or_else(|| ErrorRepr {
-        //         kind: ErrorKind::NoData,
-        //         limit_info: Some(limit_info.clone()),
-        //     }.boxed())?;
-        
-        // Ok((data, apiv2_response.includes, limit_info))
 
         Ok((apiv2_response, limit_info))
     }
-}
-
-impl<A: UserAuth> AsyncClient<A> {
-
 }
 
 impl AsyncClient<OAuth10a> {
