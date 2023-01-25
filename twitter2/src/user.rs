@@ -2,14 +2,14 @@ use std::{fmt, str, num::ParseIntError};
 
 use chrono::{DateTime, Utc};
 use libshire::strings::InliningString23;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     entity::{Tag, Url, UserMention},
     id::IdU64, tweet::TweetId,
 };
 
-#[derive(Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Deserialize, Serialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[serde(from = "IdU64", into = "IdU64")]
 pub struct UserId(pub u64);
 

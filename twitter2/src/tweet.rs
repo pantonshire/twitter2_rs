@@ -3,7 +3,7 @@ use std::{fmt, str, num::ParseIntError};
 use chrono::{DateTime, Utc};
 use enumscribe::EnumDeserialize;
 use libshire::strings::InliningString23;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     entity::{Annotation, Tag, TweetMention, Url},
@@ -11,7 +11,7 @@ use crate::{
     media::MediaKey, user::UserId,
 };
 
-#[derive(Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Deserialize, Serialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[serde(from = "IdU64", into = "IdU64")]
 pub struct TweetId(pub u64);
 
