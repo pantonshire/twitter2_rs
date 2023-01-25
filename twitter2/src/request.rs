@@ -5,7 +5,7 @@ use enumscribe::ScribeStaticStr;
 use libshire::{sink::{SinkString, StrSink, FmtSink}, convert::result_elim, sink_fmt};
 use serde_json::Value;
 
-use crate::{user::UserId, tweet::{TweetId, Tweet}, AsyncClient, auth::AppAuth, client::{Error, Request, Method, ErrorRepr, ErrorKind}, limit::LimitInfo, response::Includes, request_data::FormData, request_options::{TweetPayloadExpansion, TweetField}, timeline::PaginationToken};
+use crate::{user::UserId, tweet::{TweetId, Tweet}, AsyncClient, auth::AppAuth, client::{Error, Request, Method, ErrorRepr, ErrorKind}, limit::LimitInfo, response::Includes, request_data::FormData, request_options::{TweetPayloadExpansion, TweetField, UserField, MediaField}, timeline::PaginationToken};
 
 pub struct UserTimeline {
     id: UserId,
@@ -147,7 +147,7 @@ impl UserTimeline {
     #[must_use]
     pub fn user_fields<I>(self, user_fields: I) -> Self
     where
-        I: IntoIterator<Item = TweetField>,
+        I: IntoIterator<Item = UserField>,
     {
         Self {
             user_fields: scribe_comma_separated(user_fields),
@@ -159,7 +159,7 @@ impl UserTimeline {
     #[must_use]
     pub fn media_fields<I>(self, media_fields: I) -> Self
     where
-        I: IntoIterator<Item = TweetField>,
+        I: IntoIterator<Item = MediaField>,
     {
         Self {
             media_fields: scribe_comma_separated(media_fields),
