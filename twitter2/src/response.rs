@@ -15,6 +15,7 @@ pub(crate) struct ApiV2Response<T> {
     #[serde(rename = "type")]
     pub response_type: Option<Box<str>>,
     pub status: Option<u16>,
+    #[serde(default)]
     pub meta: Map<String, Value>,
 }
 
