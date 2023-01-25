@@ -5,7 +5,158 @@ use enumscribe::ScribeStaticStr;
 use libshire::{sink::{SinkString, StrSink, FmtSink}, convert::result_elim, sink_fmt};
 use serde_json::Value;
 
-use crate::{user::UserId, tweet::{TweetId, Tweet}, AsyncClient, auth::AppAuth, client::{Error, Request, Method, ErrorRepr, ErrorKind}, limit::LimitInfo, response::Includes, request_data::FormData, request_options::{TweetPayloadExpansion, TweetField, UserField, MediaField}, timeline::PaginationToken};
+use crate::{
+    user::UserId,
+    tweet::{TweetId, Tweet},
+    AsyncClient,
+    auth::AppAuth,
+    client::{Error, Request, Method, ErrorRepr, ErrorKind},
+    limit::LimitInfo,
+    response::Includes,
+    request_data::FormData,
+    request_options::{TweetPayloadExpansion, TweetField, UserField, MediaField},
+    timeline::PaginationToken
+};
+
+pub struct LookupTweets {
+    ids: String,
+    expansions: String,
+    tweet_fields: String,
+    user_fields: String,
+    media_fields: String,
+}
+
+impl LookupTweets {
+    pub fn new<I>(ids: I) -> Self
+    where
+        I: IntoIterator<Item = TweetId>,
+    {
+        let ids = fmt_comma_separated(ids);
+
+        Self {
+            ids,
+            expansions: String::new(),
+            tweet_fields: String::new(),
+            user_fields: String::new(),
+            media_fields: String::new(),
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn expansions<I>(self, expansions: I) -> Self
+    where
+        I: IntoIterator<Item = TweetPayloadExpansion>,
+    {
+        Self {
+            expansions: scribe_comma_separated(expansions),
+            ..self
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn tweet_fields<I>(self, tweet_fields: I) -> Self
+    where
+        I: IntoIterator<Item = TweetField>,
+    {
+        Self {
+            tweet_fields: scribe_comma_separated(tweet_fields),
+            ..self
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn user_fields<I>(self, user_fields: I) -> Self
+    where
+        I: IntoIterator<Item = UserField>,
+    {
+        Self {
+            user_fields: scribe_comma_separated(user_fields),
+            ..self
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn media_fields<I>(self, media_fields: I) -> Self
+    where
+        I: IntoIterator<Item = MediaField>,
+    {
+        Self {
+            media_fields: scribe_comma_separated(media_fields),
+            ..self
+        }
+    }
+
+    pub async fn execute<A>(&self, client: AsyncClient<A>) -> Result<LookupTweetsResponse, Error>
+    where
+        A: AppAuth,
+    {
+        let mut params = Vec::<(Cow<str>, Cow<str>)>::new();
+
+        params.push((
+            Cow::Borrowed("ids"),
+            Cow::Borrowed(&self.ids)
+        ));
+
+        if !self.expansions.is_empty() {
+            params.push((
+                Cow::Borrowed("expansions"),
+                Cow::Borrowed(&self.expansions)
+            ));
+        }
+
+        if !self.tweet_fields.is_empty() {
+            params.push((
+                Cow::Borrowed("tweet.fields"),
+                Cow::Borrowed(&self.tweet_fields)
+            ));
+        }
+
+        if !self.user_fields.is_empty() {
+            params.push((
+                Cow::Borrowed("user.fields"),
+                Cow::Borrowed(&self.user_fields)
+            ));
+        }
+
+        if !self.media_fields.is_empty() {
+            params.push((
+                Cow::Borrowed("media.fields"),
+                Cow::Borrowed(&self.media_fields)
+            ));
+        }
+
+        let (response, limit_info)
+            = client.apiv2_request::<_, Box<[Tweet]>>(Request::new_with_data(
+                Method::Get,
+                "https://api.twitter.com/2/tweets",
+                FormData::new(&params)
+            )).await?;
+
+        let tweets = response
+            .data
+            .ok_or_else(|| ErrorRepr {
+                kind: ErrorKind::NoData,
+                limit_info: Some(limit_info.clone()),
+            }.boxed())?;
+
+        Ok(LookupTweetsResponse {
+            tweets,
+            includes: response.includes,
+            limit_info,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct LookupTweetsResponse {
+    pub tweets: Box<[Tweet]>,
+    pub includes: Includes,
+    pub limit_info: LimitInfo,
+}
 
 pub struct UserTimeline {
     id: UserId,
