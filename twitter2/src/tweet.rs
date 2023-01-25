@@ -1,7 +1,7 @@
 use std::{fmt, str, num::ParseIntError};
 
 use chrono::{DateTime, Utc};
-use enumscribe::EnumDeserialize;
+use enumscribe::{EnumDeserialize, EnumSerialize};
 use libshire::strings::InliningString23;
 use serde::{Deserialize, Serialize};
 
@@ -106,7 +106,7 @@ pub struct TweetAttachments {
     pub media_keys: Box<[MediaKey]>,
 }
 
-#[derive(EnumDeserialize, Debug)]
+#[derive(EnumDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ReferenceType {
     #[enumscribe(str = "replied_to")]
     RepliedTo,
@@ -116,7 +116,7 @@ pub enum ReferenceType {
     Retweeted,
 }
 
-#[derive(EnumDeserialize, Debug)]
+#[derive(EnumDeserialize, EnumSerialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ReplySettings {
     #[enumscribe(str = "everyone")]
     Everyone,
@@ -124,4 +124,16 @@ pub enum ReplySettings {
     MentionedUsers,
     #[enumscribe(str = "followers")]
     Followers,
+}
+
+impl ReplySettings {
+    pub fn is_everyone(&self) -> bool {
+        matches!(self, Self::Everyone)
+    }
+}
+
+impl Default for ReplySettings {
+    fn default() -> Self {
+        Self::Everyone
+    }
 }

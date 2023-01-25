@@ -1,22 +1,136 @@
-use std::{fmt, num::NonZeroU8, borrow::Cow};
+use std::{fmt, num::NonZeroU8, ops, borrow::Cow};
 
 use chrono::{DateTime, Utc};
 use enumscribe::ScribeStaticStr;
 use libshire::{sink::{SinkString, StrSink, FmtSink}, convert::result_elim, sink_fmt};
+use serde::{Serialize, Deserialize};
 use serde_json::Value;
 
 use crate::{
     user::UserId,
-    tweet::{TweetId, Tweet},
+    tweet::{TweetId, Tweet, ReplySettings},
     AsyncClient,
-    auth::AppAuth,
+    auth::{AppAuth, UserAuth},
     client::{Error, Request, Method, ErrorRepr, ErrorKind},
     limit::LimitInfo,
     response::Includes,
-    request_data::FormData,
+    request_data::{FormData, JsonData},
     request_options::{TweetPayloadExpansion, TweetField, UserField, MediaField},
     timeline::PaginationToken
 };
+
+// FIXME: media, polls, geo, direct_message_deep_link
+#[derive(Serialize)]
+pub struct PostTweet<'a> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    text: Option<&'a str>,
+    #[serde(skip_serializing_if = "ReplySettings::is_everyone")]
+    reply_settings: ReplySettings,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reply: Option<PostTweetReply<'a>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    quote_tweet_id: Option<TweetId>,
+    #[serde(skip_serializing_if = "ops::Not::not")]
+    for_super_followers_only: bool,
+}
+
+impl<'a> PostTweet<'a> {
+    #[inline]
+    #[must_use]
+    pub fn new_with_text(text: &'a str) -> Self {
+        Self {
+            text: Some(text),
+            reply_settings: ReplySettings::Everyone,
+            reply: None,
+            quote_tweet_id: None,
+            for_super_followers_only: false,
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn reply_settings(self, reply_settings: ReplySettings) -> Self {
+        Self {
+            reply_settings,
+            ..self
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn reply(self, reply_to: TweetId, exclude: Option<&'a [UserId]>) -> Self {
+        Self {
+            reply: Some(PostTweetReply {
+                in_reply_to_tweet_id: reply_to,
+                exclude_reply_user_ids: exclude.unwrap_or_default()
+            }),
+            ..self
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn quote(self, quote: TweetId) -> Self {
+        Self {
+            quote_tweet_id: Some(quote),
+            ..self
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn for_super_followers_only(self) -> Self {
+        Self {
+            for_super_followers_only: true,
+            ..self
+        }
+    }
+
+    pub async fn execute<A>(&self, client: AsyncClient<A>) -> Result<PostTweetResponse, Error>
+    where
+        A: UserAuth,
+    {
+        #[derive(Deserialize)]
+        struct Response {
+            id: TweetId,
+            text: Box<str>,
+        }
+        
+        let (response, limit_info)
+            = client.apiv2_request::<_, Response>(Request::new_with_data(
+                Method::Post,
+                "https://api.twitter.com/2/tweets",
+                JsonData::new(self)
+            )).await?;
+
+        let response_data = response
+            .data
+            .ok_or_else(|| ErrorRepr {
+                kind: ErrorKind::NoData,
+                limit_info: Some(limit_info.clone()),
+            }.boxed())?;
+
+        Ok(PostTweetResponse {
+            id: response_data.id,
+            text: response_data.text,
+            limit_info,
+        })
+    }
+}
+
+#[derive(Serialize)]
+struct PostTweetReply<'a> {
+    in_reply_to_tweet_id: TweetId,
+    #[serde(skip_serializing_if = "<[UserId]>::is_empty")]
+    exclude_reply_user_ids: &'a [UserId],
+}
+
+#[derive(Debug)]
+pub struct PostTweetResponse {
+    pub id: TweetId,
+    pub text: Box<str>,
+    pub limit_info: LimitInfo,
+}
 
 pub struct LookupTweets {
     ids: String,
@@ -27,6 +141,8 @@ pub struct LookupTweets {
 }
 
 impl LookupTweets {
+    #[inline]
+    #[must_use]
     pub fn new<I>(ids: I) -> Self
     where
         I: IntoIterator<Item = TweetId>,
