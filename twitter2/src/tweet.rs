@@ -120,7 +120,7 @@ pub enum ReferenceType {
 pub enum ReplySettings {
     #[enumscribe(str = "everyone")]
     Everyone,
-    #[enumscribe(str = "mentioned_users")]
+    #[enumscribe(str = "mentionedUsers")]
     MentionedUsers,
     #[enumscribe(str = "followers")]
     Followers,
