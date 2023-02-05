@@ -41,7 +41,7 @@ impl str::FromStr for TweetId {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Tweet {
     pub id: TweetId,
     pub text: Box<str>,
@@ -69,14 +69,14 @@ pub struct Tweet {
     // withheld:
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ReferencedTweet {
     #[serde(rename = "type")]
     pub reference_type: ReferenceType,
     pub id: TweetId,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TweetPublicMetrics {
     pub retweet_count: u64,
     pub reply_count: u64,
@@ -84,7 +84,7 @@ pub struct TweetPublicMetrics {
     pub quote_count: u64,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct TweetEntities {
     #[serde(default)]
     pub annotations: Box<[Annotation]>,
@@ -98,7 +98,7 @@ pub struct TweetEntities {
     pub urls: Box<[Url]>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct TweetAttachments {
     #[serde(default)]
     pub poll_ids: Box<[InliningString23]>,
@@ -106,7 +106,7 @@ pub struct TweetAttachments {
     pub media_keys: Box<[MediaKey]>,
 }
 
-#[derive(EnumDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(EnumSerialize, EnumDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ReferenceType {
     #[enumscribe(str = "replied_to")]
     RepliedTo,
@@ -116,7 +116,7 @@ pub enum ReferenceType {
     Retweeted,
 }
 
-#[derive(EnumDeserialize, EnumSerialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(EnumSerialize, EnumDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ReplySettings {
     #[enumscribe(str = "everyone")]
     Everyone,

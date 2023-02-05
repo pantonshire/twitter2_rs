@@ -1,11 +1,11 @@
 use std::ops::{Range, RangeInclusive};
 
 use libshire::strings::InliningString23;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{media::MediaKey, user::UserId};
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Annotation {
     start: usize,
     #[serde(rename = "end")]
@@ -34,7 +34,7 @@ impl Annotation {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Tag {
     start: usize,
     end: usize,
@@ -51,7 +51,7 @@ impl Tag {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TweetMention {
     start: usize,
     end: usize,
@@ -73,7 +73,7 @@ impl TweetMention {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct UserMention {
     start: usize,
     end: usize,
@@ -90,7 +90,7 @@ impl UserMention {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Url {
     start: usize,
     end: usize,

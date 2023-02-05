@@ -1,6 +1,6 @@
 use std::{error, fmt, str};
 
-use enumscribe::EnumDeserialize;
+use enumscribe::{EnumDeserialize, EnumSerialize};
 use serde::{
     de::{Error, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,
@@ -89,7 +89,7 @@ impl fmt::Display for MediaKeyError {
 
 impl error::Error for MediaKeyError {}
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Media {
     pub media_key: MediaKey,
     #[serde(rename = "type")]
@@ -108,7 +108,7 @@ pub struct Media {
     pub variants: Box<[MediaVariant]>,
 }
 
-#[derive(EnumDeserialize, Debug)]
+#[derive(EnumSerialize, EnumDeserialize, Debug)]
 pub enum MediaType {
     #[enumscribe(str = "photo")]
     Photo,
@@ -118,7 +118,7 @@ pub enum MediaType {
     Video,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct MediaPublicMetrics {
     view_count: u64,
 }
@@ -129,7 +129,7 @@ impl MediaPublicMetrics {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct MediaVariant {
     content_type: Box<str>,
     url: Box<str>,

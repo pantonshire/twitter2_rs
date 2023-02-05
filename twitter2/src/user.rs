@@ -39,7 +39,7 @@ impl str::FromStr for UserId {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct User {
     pub id: UserId,
     pub name: InliningString23,
@@ -57,7 +57,7 @@ pub struct User {
     // withheld:
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct UserPublicMetrics {
     followers_count: u64,
     following_count: u64,
@@ -83,7 +83,7 @@ impl UserPublicMetrics {
     }
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct UserEntities {
     #[serde(default)]
     url: UserUrlEntities,
@@ -101,7 +101,7 @@ impl UserEntities {
     }
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct UserUrlEntities {
     #[serde(default)]
     urls: Box<[Url]>,
@@ -113,7 +113,7 @@ impl UserUrlEntities {
     }
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct UserDescriptionEntities {
     #[serde(default)]
     cashtags: Box<[Tag]>,
