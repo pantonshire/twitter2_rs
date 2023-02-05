@@ -86,7 +86,7 @@ impl<'a> PostTweet<'a> {
         }
     }
 
-    pub async fn execute<A>(&self, client: AsyncClient<A>) -> Result<PostTweetResponse, Error>
+    pub async fn execute<A>(&self, client: &AsyncClient<A>) -> Result<PostTweetResponse, Error>
     where
         A: UserAuth,
     {
@@ -206,7 +206,7 @@ impl LookupTweets {
         }
     }
 
-    pub async fn execute<A>(&self, client: AsyncClient<A>) -> Result<LookupTweetsResponse, Error>
+    pub async fn execute<A>(&self, client: &AsyncClient<A>) -> Result<LookupTweetsResponse, Error>
     where
         A: AppAuth,
     {
@@ -434,7 +434,7 @@ impl UserTimeline {
         }
     }
 
-    pub async fn execute<A>(&self, client: AsyncClient<A>) -> Result<UserTimelineResponse, Error>
+    pub async fn execute<A>(&self, client: &AsyncClient<A>) -> Result<UserTimelineResponse, Error>
     where
         A: AppAuth,
     {
