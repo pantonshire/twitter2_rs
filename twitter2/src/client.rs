@@ -133,7 +133,9 @@ impl<A: AppAuth> AsyncClient<A> {
             }.boxed())?;
 
         // Return an error if we got a non-2XX HTTP response code or a non-empty errors list.
-        if !status.is_success() || !apiv2_response.errors.is_empty() {
+        if !status.is_success()
+            || (apiv2_response.data.is_none() && !apiv2_response.errors.is_empty())
+        {
             return Err(ErrorRepr {
                 kind: ErrorKind::ErrorResponse { status, errors: apiv2_response.errors },
                 limit_info: Some(limit_info),
